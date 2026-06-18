@@ -1,0 +1,26 @@
+# Checklist
+
+- [x] `npm install && npm run dev` 能启动，访问 http://localhost:5173 看到首页
+- [x] `npm run build` 无 TypeScript 编译错误
+- [x] engine 层包含 5 个模块：promptBuilder / mockGenerator / aiGenerator / generatorIndex / reviewEngine
+- [x] mockGenerator 与 aiGenerator 实现同一 ContentGenerator 接口
+- [x] generatorIndex 默认返回 mockGenerator
+- [x] Voyage Pack 产品资料完整，包含 water_resistance fact（防泼水 + forbiddenExaggeration 含"完全防水"）
+- [x] Metro Pack / Flex Sleeve 在 ProductSelector 中可见但标记"即将支持"，不进入生成流程
+- [x] 3 个平台配置正确：小红书 tagRange[5,8] zh；Instagram tagRange[10,15] en；微信公众号 tagRange[3,6] zh
+- [x] 2 个内容目标：种草帖 / 新品介绍
+- [x] templates.ts 覆盖 Voyage Pack × 3 平台 × 2 目标 = 6 个模板
+- [x] Voyage Pack × 小红书 × 种草帖 模板包含：标题"全网最好的短途背包"、正文"完全防水"、标签 ≤ 3 个、CTA"立即下单抢购"
+- [x] ProductEditor 可编辑：品牌名、产品名、产品类型、核心卖点、禁用词
+- [x] 编辑后的禁用词参与审核（修改禁用词后重新生成能看到 brand.banned 规则命中变化）
+- [x] 6 条审核规则全部实现：brand.absolute / brand.banned / brand.ctaHardSell / platform.tagCount / platform.instagramLanguage / fact.waterExaggeration
+- [x] Voyage Pack × 小红书 × 种草帖 生成后审核结果至少包含 4 条问题（绝对化用语 error、禁用词视情况、防泼水夸大 error、标签数量 warning、CTA 强销售 warning）
+- [x] ReviewItem 展示 severity 颜色区分（pass 绿 / warning 黄 / error 红）
+- [x] ReviewItem 可展开查看 evidence（命中文本）与 suggestion
+- [x] ReviewSummary 展示 pass/warning/error 计数
+- [x] ProgressBar 5 步始终可见，当前步高亮
+- [x] 工作台底部展示 Session ID
+- [x] Footer 包含"本 Demo 所有品牌与产品均为虚构"声明
+- [x] 切换到 Instagram + 新品介绍组合，生成结果基本合规（不触发 error，可能有少量 warning）
+- [x] 首页轻量，一屏内包含 Hero + PainPoints + WorkflowIntro + 进入按钮
+- [x] 全程不出现真实公司/品牌/产品名/ASIN/电商链接
