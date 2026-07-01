@@ -1,4 +1,5 @@
 import { Brand, ContentGoal, GeneratedContent, Platform, Product } from '@/engine/types';
+import { ProductBrief, PlatformBrief, ContentStrategy } from '@/agents/types';
 import ContentResultCard from '@/components/result/ContentResultCard';
 import RegenerateButton from '@/components/result/RegenerateButton';
 
@@ -10,6 +11,9 @@ interface GenerateStepProps {
   product: Product;
   platform: Platform;
   goal: ContentGoal;
+  productBrief: ProductBrief | null;
+  platformBrief: PlatformBrief | null;
+  contentStrategy: ContentStrategy | null;
   onGenerate: () => void;
   onRegenerate: () => void;
   onBack: () => void;
@@ -17,12 +21,14 @@ interface GenerateStepProps {
 }
 
 // Step 4：生成内容
-// 生成完成后停留在本步展示文案内容，由用户点击「查看审核结果」进入第五步
-// 不再展示完整 Agent 链路总览，仅保留上游输入摘要与生成结果
+// ContentGenerationAgent 综合上游 Product Brief / Platform Brief / Content Strategy 生成文案
 export default function GenerateStep({
   loading,
   content,
   error,
+  productBrief,
+  platformBrief,
+  contentStrategy,
   onGenerate,
   onRegenerate,
   onBack,
@@ -33,7 +39,7 @@ export default function GenerateStep({
       {/* 标题 + 副标题 */}
       <h2 className="text-xl font-bold text-gray-900">第四步：生成内容</h2>
       <p className="mt-1 text-sm text-gray-500">
-        基于产品资料、平台风格和内容目标生成文案
+        ContentGenerationAgent 基于 Product Brief、Platform Brief 与 Content Strategy 生成文案
       </p>
 
       <div className="mt-6">
@@ -46,7 +52,7 @@ export default function GenerateStep({
         {loading && (
           <div className="flex items-center gap-3 text-gray-600">
             <div className="inline-block w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <span>正在生成内容...</span>
+            <span>ContentGenerationAgent 正在生成内容...</span>
           </div>
         )}
 
@@ -66,20 +72,26 @@ export default function GenerateStep({
         {/* 已生成内容：上游输入摘要 + 生成结果 + 底部按钮栏 */}
         {!loading && content !== null && (
           <>
-            {/* 上游输入摘要标签 */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Product Brief 已读取
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Platform Brief 已应用
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Content Strategy 已采用
-              </span>
+            {/* 上游输入摘要：展示真实 Agent 输出摘要 */}
+            <div className="mb-4 bg-white rounded-lg border border-gray-200 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-2">ContentGenerationAgent 上游输入</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <UpstreamItem
+                  label="Product Brief"
+                  ok={!!productBrief}
+                  summary={productBrief ? `${productBrief.coreSellingPoints.length} 个卖点 · ${productBrief.scenarios.length} 个场景` : '未生成'}
+                />
+                <UpstreamItem
+                  label="Platform Brief"
+                  ok={!!platformBrief}
+                  summary={platformBrief ? `${platformBrief.styleKeywords.slice(0, 2).join('·')}` : '未生成'}
+                />
+                <UpstreamItem
+                  label="Content Strategy"
+                  ok={!!contentStrategy}
+                  summary={contentStrategy ? contentStrategy.angle : '未生成'}
+                />
+              </div>
             </div>
 
             {/* 生成结果 */}
@@ -110,6 +122,19 @@ export default function GenerateStep({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// 上游输入项
+function UpstreamItem({ label, ok, summary }: { label: string; ok: boolean; summary: string }) {
+  return (
+    <div className={`rounded border p-2.5 ${ok ? 'border-emerald-200 bg-emerald-50/50' : 'border-gray-200 bg-gray-50'}`}>
+      <div className="flex items-center gap-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+        <span className="text-xs font-medium text-gray-700">{label}</span>
+      </div>
+      <p className="mt-1 text-xs text-gray-500 leading-relaxed">{summary}</p>
     </div>
   );
 }

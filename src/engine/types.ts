@@ -75,7 +75,7 @@ export interface GeneratedContent {
 
 // 审核相关
 export type Severity = 'pass' | 'warning' | 'error';
-export type RuleCategory = 'brand' | 'platform' | 'fact';
+export type RuleCategory = 'brand' | 'platform' | 'fact' | 'cta' | 'tag' | 'sellingPoint';
 
 export interface ReviewItem {
   id: string;
@@ -90,30 +90,9 @@ export interface ReviewItem {
 export interface ReviewResult {
   sessionId: string;
   contentId: string;
+  status: Severity;              // 总体状态：pass / warning / error
+  score: number;                 // 审核总分 0-100
   items: ReviewItem[];
   summary: { pass: number; warning: number; error: number };
-}
-
-// 生成器统一接口
-export interface ContentGenerator {
-  generate(ctx: PromptContext): Promise<GeneratedContent>;
-}
-
-// Prompt 上下文
-export interface PromptContext {
-  brand: Brand;
-  product: Product;
-  platform: Platform;
-  goal: ContentGoal;
-}
-
-// 内容模板（用于 mockGenerator）
-export interface ContentTemplate {
-  productId: string;
-  platformId: string;
-  goalId: string;
-  title: string;
-  body: string;       // 可含占位符 {productName} {capacity} {material} {sellingPoint1} 等
-  tags: string[];
-  cta: string;
+  suggestions: string[];         // 修改建议（取非 pass 项）
 }

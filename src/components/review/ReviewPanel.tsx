@@ -8,22 +8,34 @@ interface ReviewPanelProps {
 // 各分类的标题与描述
 const categoryConfig: Record<RuleCategory, { title: string; description: string }> = {
   brand: {
-    title: '品牌规则检查',
-    description: '绝对化用语、禁用词、CTA 风格',
+    title: '品牌一致性检查',
+    description: '绝对化用语、禁用词、品牌语气',
   },
   platform: {
-    title: '平台风格检查',
-    description: '标签数量、平台语言',
+    title: '平台风格匹配检查',
+    description: '正文长度、平台语言、场景词',
   },
   fact: {
-    title: '事实一致性检查',
+    title: '事实风险检查',
     description: '产品卖点与事实是否一致',
+  },
+  cta: {
+    title: 'CTA 表达检查',
+    description: '是否含强销售用语',
+  },
+  tag: {
+    title: '标签匹配检查',
+    description: '标签数量与相关性',
+  },
+  sellingPoint: {
+    title: '卖点数量检查',
+    description: '正文卖点是否过多或缺失',
   },
 };
 
-// 审核面板：按 brand/platform/fact 三类分组展示
+// 审核面板：按 6 类分组展示
 export default function ReviewPanel({ items }: ReviewPanelProps) {
-  const categories: RuleCategory[] = ['brand', 'platform', 'fact'];
+  const categories: RuleCategory[] = ['brand', 'platform', 'fact', 'cta', 'tag', 'sellingPoint'];
 
   return (
     <div className="space-y-6">

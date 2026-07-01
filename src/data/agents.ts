@@ -197,7 +197,7 @@ export function buildAgentRunNodes(
       output: '当前页面展示的完整文案内容',
       status: 'completed',
       sample: `生成 ${brand.name} ${product.name} 在 ${platformLabel(platform)} 的「${goal.name}」文案，包含标题、正文、标签与 CTA。`,
-      note: '当前 Demo 使用 mockGenerator（静态模板填充），未接入真实大模型 API，生成结果来自 src/data/templates.ts。',
+      note: '本地 Agent Engine 中 ContentGenerationAgent 基于规则驱动动态生成，未接入真实大模型 API，实现见 src/agents/contentGenerationAgent.ts。',
     },
     {
       id: 'agent_review',
@@ -208,7 +208,7 @@ export function buildAgentRunNodes(
       output: '审核项列表与改进建议（pass / warning / error）',
       status: 'completed',
       sample: `对生成内容预检品牌一致性、平台风格、事实风险与 CTA 表达，生成审核项并提交至第五步「发布前审核」。`,
-      note: '当前 Demo 中审核逻辑来自 src/engine/reviewEngine.ts，基于静态规则模拟审核结果。',
+      note: '本地 Agent Engine 中 ReviewAgent 基于生成内容做规则审核，实现见 src/agents/reviewAgent.ts。',
     },
   ];
 

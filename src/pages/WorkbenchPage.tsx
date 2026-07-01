@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProgressBar from '@/components/layout/ProgressBar';
@@ -23,10 +24,20 @@ export default function WorkbenchPage() {
     setPlatform,
     setGoal,
     generate,
+    review,
     reset,
   } = useWorkbench();
 
   const agentStatuses = getAgentStatuses(state.step, !!state.generatedContent, state.loading);
+
+  // 首次进入工作台时，为默认产品生成一次 Product Brief
+  useEffect(() => {
+    if (!state.productBrief) {
+      // setProduct 会触发 ProductKnowledgeAgent 生成 Product Brief
+      setProduct(state.product);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,6 +51,11 @@ export default function WorkbenchPage() {
       </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+        {/* MVP 透明说明 */}
+        <div className="mb-6 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+          当前版本为参赛 MVP，使用本地规则驱动的 Agent Workflow 模拟 AI 内容生成与发布前审核流程，暂未接入真实大模型 API。后续版本可将 Content Generation Agent 与 Review Agent 替换为真实大模型调用，实现更完整的 AI 内容运营自动化。
+        </div>
+
         {/* 主体 + 侧边栏布局：大屏左右分栏，小屏上下堆叠 */}
         <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-6">
           {/* 主体区域：用户当前要完成的操作 */}
@@ -86,10 +102,17 @@ export default function WorkbenchPage() {
                 product={state.product}
                 platform={state.platform}
                 goal={state.goal}
+                productBrief={state.productBrief}
+                platformBrief={state.platformBrief}
+                contentStrategy={state.contentStrategy}
                 onGenerate={generate}
                 onRegenerate={generate}
                 onBack={() => setStep(3)}
-                onNext={() => setStep(5)}
+                onNext={() => {
+                  // 进入发布前审核，调用 ReviewAgent 生成审核报告
+                  setStep(5);
+                  review();
+                }}
               />
             )}
 
@@ -97,6 +120,7 @@ export default function WorkbenchPage() {
             {state.step === 5 && (
               <ReviewStep
                 reviewResult={state.reviewResult}
+                reviewing={state.reviewing}
                 sessionId={state.generatedContent?.sessionId || ''}
                 onBack={() => setStep(4)}
                 onRestart={reset}
@@ -115,8 +139,14 @@ export default function WorkbenchPage() {
               product={state.product}
               platform={state.platform}
               goal={state.goal}
+              productBrief={state.productBrief}
+              platformBrief={state.platformBrief}
+              contentStrategy={state.contentStrategy}
+              generatedContent={state.generatedContent}
+              reviewResult={state.reviewResult}
               contentGenerated={!!state.generatedContent}
               loading={state.loading}
+              reviewing={state.reviewing}
             />
           </aside>
         </div>
