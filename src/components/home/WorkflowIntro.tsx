@@ -25,7 +25,7 @@ const STEPS: WorkflowStep[] = [
   },
   {
     title: '发布前审核',
-    description: '审核品牌调性、平台风格、合规性',
+    description: '检查品牌规则、平台风格、事实一致性',
     isReview: true,
   },
 ]
