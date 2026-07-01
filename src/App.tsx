@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import WorkbenchPage from './pages/WorkbenchPage'
+import WorkflowPage from './pages/WorkflowPage'
 
 // 根组件：使用 BrowserRouter 配置路由
 function App() {
@@ -9,6 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/workbench" element={<WorkbenchPage />} />
+        <Route path="/workflow" element={<WorkflowPage />} />
       </Routes>
     </BrowserRouter>
   )

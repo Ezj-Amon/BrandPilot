@@ -30,6 +30,11 @@ export default function Hero() {
           差异化重点：发布前审核 + 品牌一致性检查
         </p>
 
+        {/* MVP 状态提示 */}
+        <p className="mt-3 max-w-2xl mx-auto text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 inline-block">
+          当前为参赛 MVP：使用静态示例数据模拟 Agent 工作流，暂未接入真实大模型 API
+        </p>
+
         {/* 主次按钮 */}
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link
@@ -38,17 +43,17 @@ export default function Hero() {
           >
             进入工作台
           </Link>
-          <a
-            href="#workflow"
+          <Link
+            to="/workflow"
             className="px-6 py-3 rounded-lg bg-white text-indigo-600 font-medium border border-indigo-200 hover:bg-indigo-50 transition-colors"
           >
-            了解工作流
-          </a>
+            查看 Agent Workflow
+          </Link>
         </div>
 
         {/* 虚拟案例提示 */}
         <p className="mt-8 text-xs text-gray-400">
-          页面中的品牌与产品均为虚构案例，仅用于展示 BrandPilot 的内容运营工作流
+          页面中的品牌与产品（LumaCarry、Voyage Pack、Metro Pack、Flex Sleeve）均为虚构案例，仅用于展示 BrandPilot 的内容运营工作流
         </p>
       </div>
     </section>

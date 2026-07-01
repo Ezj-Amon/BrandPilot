@@ -27,6 +27,12 @@ export default function Header() {
           >
             工作台
           </Link>
+          <Link
+            to="/workflow"
+            className="text-sm text-gray-700 hover:text-indigo-600 transition-colors"
+          >
+            Agent Workflow
+          </Link>
         </nav>
       </div>
     </header>
