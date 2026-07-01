@@ -78,6 +78,7 @@ npm run preview
 | Install Command | `npm install` |
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
+| Node Version | 20（Cloudflare Pages 在「Settings → Environment variables」设置 `NODE_VERSION=20`） |
 
 ### Vercel
 
@@ -90,7 +91,10 @@ npm run preview
 
 1. 创建项目并连接 Git 仓库
 2. Build command 填 `npm run build`，Build output directory 填 `dist`
-3. 部署即可
+3. 在「Settings → Environment variables」中添加 `NODE_VERSION = 20`
+4. 部署即可
+
+> SPA 路由刷新由仓库内的 `public/_redirects` 处理（内容为 `/*  /index.html  200`），构建时会自动复制到 `dist/_redirects`，刷新 `/workbench` 等子路由不会 404。本项目使用 BrowserRouter，请勿删除 `public/_redirects` 文件。
 
 ### GitHub Pages（子路径部署需额外配置）
 
