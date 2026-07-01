@@ -23,9 +23,14 @@ interface CurrentAgentCardProps {
 // 状态徽章样式映射
 const STATUS_BADGE: Record<AgentStatus, { label: string; dotClass: string; badgeClass: string }> = {
   pending: {
-    label: '未开始',
+    label: '待处理',
     dotClass: 'bg-gray-300',
     badgeClass: 'bg-gray-100 text-gray-500',
+  },
+  ready: {
+    label: '输入就绪',
+    dotClass: 'bg-blue-500',
+    badgeClass: 'bg-blue-100 text-blue-700',
   },
   waiting: {
     label: '等待输入',
@@ -60,9 +65,9 @@ export default function CurrentAgentCard({
   const agentDef = AGENT_DEFINITIONS[step - 1];
 
   const status = useMemo(() => {
-    const statuses = getAgentStatuses(step, contentGenerated, loading);
+    const statuses = getAgentStatuses(step, contentGenerated, loading, reviewing, !!reviewResult);
     return statuses[step - 1];
-  }, [step, contentGenerated, loading]);
+  }, [step, contentGenerated, loading, reviewing, reviewResult]);
 
   const badge = STATUS_BADGE[status];
 

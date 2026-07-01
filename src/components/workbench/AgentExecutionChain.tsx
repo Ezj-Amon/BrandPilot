@@ -10,6 +10,10 @@ const STATUS_BADGE: Record<AgentRunNode['status'], { label: string; className: s
     label: 'Pending',
     className: 'bg-gray-100 text-gray-500',
   },
+  ready: {
+    label: 'Ready',
+    className: 'bg-blue-100 text-blue-700',
+  },
   waiting: {
     label: 'Waiting',
     className: 'bg-gray-100 text-gray-600',
@@ -63,7 +67,9 @@ export default function AgentExecutionChain({ nodes }: AgentExecutionChainProps)
                     ? 'bg-emerald-600 text-white'
                     : node.status === 'running'
                       ? 'bg-amber-500 text-white'
-                      : 'bg-gray-300 text-gray-600'
+                      : node.status === 'ready'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-300 text-gray-600'
                 }`}
               >
                 {index + 1}
