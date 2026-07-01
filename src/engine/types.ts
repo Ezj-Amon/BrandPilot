@@ -117,3 +117,41 @@ export interface ContentTemplate {
   tags: string[];
   cta: string;
 }
+
+// ─── Agent 中间产物类型 ───
+
+// Product Knowledge Agent 输出：产品简报
+export interface ProductBrief {
+  positioning: string;        // 产品定位
+  targetUsers: string[];      // 目标用户
+  useScenarios: string[];      // 使用场景
+  coreSellingPoints: string[];// 核心卖点
+  riskConstraints: string[];  // 风险表达约束（如"防泼水，不可表述为完全防水"）
+}
+
+// Platform Adaptation Agent 输出：平台简报
+export interface PlatformBrief {
+  expressionStyle: string;    // 平台表达风格
+  bodyLengthAdvice: string;   // 内容长度建议
+  tagAdvice: string;           // 标签建议
+  ctaStyleAdvice: string;      // CTA 风格建议
+}
+
+// Content Strategy Agent 输出：内容策略
+export interface ContentStrategy {
+  mainThread: string;          // 内容主线
+  angle: string;               // 表达切口
+  infoOrder: string[];         // 信息排序
+  structureAdvice: string;    // 结构建议
+}
+
+// Agent 上下文：承载完整 Brief/Strategy 链路，供生成与审核消费
+export interface AgentContext {
+  brand: Brand;
+  product: Product;
+  platform: Platform;
+  goal: ContentGoal;
+  productBrief: ProductBrief;
+  platformBrief: PlatformBrief;
+  contentStrategy: ContentStrategy;
+}
