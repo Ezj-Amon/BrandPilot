@@ -28,7 +28,13 @@ export default function WorkbenchPage() {
     reset,
   } = useWorkbench();
 
-  const agentStatuses = getAgentStatuses(state.step, !!state.generatedContent, state.loading);
+  const agentStatuses = getAgentStatuses(
+    state.step,
+    !!state.generatedContent,
+    state.loading,
+    state.reviewing,
+    !!state.reviewResult,
+  );
 
   // 首次进入工作台时，为默认产品生成一次 Product Brief
   useEffect(() => {
@@ -46,7 +52,7 @@ export default function WorkbenchPage() {
       {/* 顶部固定进度条：仅显示 5 步流程 */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <ProgressBar currentStep={state.step} />
+          <ProgressBar currentStep={state.step} onStepClick={setStep} />
         </div>
       </div>
 

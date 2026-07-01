@@ -61,11 +61,12 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
 ];
 
 // Agent 运行时状态
-// pending: 未到达（后续步骤）
-// waiting: 等待输入（用户仍在当前步骤操作，尚未触发处理动作）
+// pending: 待处理（后续未到达的步骤）
+// ready: 输入就绪（当前步骤已有有效输入，等待用户确认下一步）
 // running: 运行中（正在执行生成 / 审核等处理动作）
-// completed: 已完成
-export type AgentStatus = 'pending' | 'waiting' | 'running' | 'completed';
+// completed: 已完成（用户已点击下一步并离开该步骤）
+// waiting: 等待输入（保留类型，仅用于当前步骤确实没有有效输入时）
+export type AgentStatus = 'pending' | 'ready' | 'running' | 'completed' | 'waiting';
 
 // 运行时 Agent 节点（用于时间线展示）
 export interface AgentRunNode {
@@ -113,16 +114,19 @@ function goalStructureSample(goal: ContentGoal): string {
 
 // 根据当前工作台步骤推导 5 个 Agent 的状态
 // step: 当前步骤（1-5），contentGenerated: 第四步是否已生成内容，loading: 是否正在执行生成
+// reviewing: 是否正在执行审核，hasReviewResult: 第五步是否已有审核结果
 // 状态规则：
 // - 前序步骤的 Agent 均已完成
-// - 当前步骤 1-3：用户仍在选择，Agent 处于"等待输入"
-// - 当前步骤 4：未生成时"等待输入"，生成中"运行中"，已生成"已完成"
-// - 当前步骤 5：审核结果随内容一起生成，已完成
-// - 后续步骤的 Agent 未到达
+// - 当前步骤 1-3：有默认有效输入，Agent 处于"输入就绪"
+// - 当前步骤 4：未生成时"输入就绪"，生成中"运行中"，已生成"已完成"
+// - 当前步骤 5：未审核时"输入就绪"，审核中"运行中"，已审核"已完成"
+// - 后续步骤的 Agent 未到达（待处理）
 export function getAgentStatuses(
   step: number,
   contentGenerated: boolean,
-  loading: boolean = false
+  loading: boolean = false,
+  reviewing: boolean = false,
+  hasReviewResult: boolean = false,
 ): AgentStatus[] {
   const result: AgentStatus[] = [];
   for (let i = 0; i < 5; i++) {
@@ -130,11 +134,12 @@ export function getAgentStatuses(
       result.push('completed');
     } else if (i === step - 1) {
       if (step === 4) {
-        result.push(loading ? 'running' : contentGenerated ? 'completed' : 'waiting');
+        result.push(loading ? 'running' : contentGenerated ? 'completed' : 'ready');
       } else if (step === 5) {
-        result.push('completed');
+        result.push(reviewing ? 'running' : hasReviewResult ? 'completed' : 'ready');
       } else {
-        result.push('waiting');
+        // 步骤 1-3：有默认有效输入，显示"输入就绪"
+        result.push('ready');
       }
     } else {
       result.push('pending');
