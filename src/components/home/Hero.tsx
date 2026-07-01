@@ -31,8 +31,8 @@ export default function Hero() {
         </p>
 
         {/* MVP 状态提示 */}
-        <p className="mt-3 max-w-2xl mx-auto text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 inline-block">
-          当前为参赛 MVP：使用静态示例数据模拟 Agent 工作流，暂未接入真实大模型 API
+        <p className="mt-3 max-w-2xl mx-auto text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 inline-block">
+          当前版本为参赛 MVP，使用本地规则驱动的 Agent Workflow 模拟 AI 内容生成与发布前审核流程，暂未接入真实大模型 API。后续版本可将 Content Generation Agent 与 Review Agent 替换为真实大模型调用，实现更完整的 AI 内容运营自动化。
         </p>
 
         {/* 主次按钮 */}

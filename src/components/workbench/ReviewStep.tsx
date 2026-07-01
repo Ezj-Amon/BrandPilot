@@ -5,6 +5,7 @@ import ReviewPanel from '@/components/review/ReviewPanel';
 interface ReviewStepProps {
   reviewResult: ReviewResult | null;
   sessionId: string;
+  reviewing: boolean;
   onBack: () => void;
   onRestart: () => void; // 重新开始
 }
@@ -13,6 +14,7 @@ interface ReviewStepProps {
 export default function ReviewStep({
   reviewResult,
   sessionId,
+  reviewing,
   onBack,
   onRestart,
 }: ReviewStepProps) {
@@ -21,17 +23,28 @@ export default function ReviewStep({
       {/* 标题 + 副标题 */}
       <h2 className="text-xl font-bold text-gray-900">第五步：发布前审核</h2>
       <p className="mt-1 text-sm text-gray-500">
-        基于品牌规则、平台风格和产品事实对生成内容进行审核
+        ReviewAgent 基于生成内容做规则审核：品牌一致性、平台风格、卖点数量、事实风险、CTA、标签
       </p>
 
       <div className="mt-6">
+        {/* 审核中 */}
+        {reviewing && (
+          <div className="flex items-center gap-3 text-gray-600 bg-gray-50 p-4 rounded">
+            <div className="inline-block w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <span>ReviewAgent 正在审核生成内容…</span>
+          </div>
+        )}
+
         {/* 未生成内容时的提示 */}
-        {reviewResult === null ? (
+        {!reviewing && reviewResult === null ? (
           <div className="bg-gray-50 text-gray-600 p-4 rounded">请先生成内容</div>
-        ) : (
+        ) : null}
+
+        {/* 审核结果 */}
+        {!reviewing && reviewResult !== null && (
           <>
             {/* 审核汇总 */}
-            <ReviewSummary summary={reviewResult.summary} />
+            <ReviewSummary summary={reviewResult.summary} result={reviewResult} />
 
             {/* 分组审核明细 */}
             <div className="mt-6">
