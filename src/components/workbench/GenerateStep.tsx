@@ -1,9 +1,6 @@
-import { useMemo } from 'react';
 import { Brand, ContentGoal, GeneratedContent, Platform, Product } from '@/engine/types';
 import ContentResultCard from '@/components/result/ContentResultCard';
 import RegenerateButton from '@/components/result/RegenerateButton';
-import AgentExecutionChain from '@/components/workbench/AgentExecutionChain';
-import { buildAgentRunNodes, getAgentStatuses } from '@/data/agents';
 
 interface GenerateStepProps {
   loading: boolean;
@@ -20,25 +17,17 @@ interface GenerateStepProps {
 }
 
 // Step 4：生成内容
-// 生成完成后停留在本步，展示生成结果与 Agent 执行链路，由用户点击「查看审核结果」进入第五步
+// 生成完成后停留在本步展示文案内容，由用户点击「查看审核结果」进入第五步
+// 不再展示完整 Agent 链路总览，仅保留上游输入摘要与生成结果
 export default function GenerateStep({
   loading,
   content,
   error,
-  brand,
-  product,
-  platform,
-  goal,
   onGenerate,
   onRegenerate,
   onBack,
   onNext,
 }: GenerateStepProps) {
-  // 根据当前 Prompt 上下文构建 Agent 执行链路节点（渐进式状态）
-  const agentNodes = useMemo(
-    () => buildAgentRunNodes(brand, product, platform, goal, getAgentStatuses(4, !!content)),
-    [brand, product, platform, goal, content]
-  );
   return (
     <div>
       {/* 标题 + 副标题 */}
@@ -74,13 +63,27 @@ export default function GenerateStep({
           </div>
         )}
 
-        {/* 已生成内容：展示卡片 + Agent 执行链路 + 底部按钮栏 */}
+        {/* 已生成内容：上游输入摘要 + 生成结果 + 底部按钮栏 */}
         {!loading && content !== null && (
           <>
-            <ContentResultCard content={content} />
+            {/* 上游输入摘要标签 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Product Brief 已读取
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Platform Brief 已应用
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Content Strategy 已采用
+              </span>
+            </div>
 
-            {/* Agent 执行链路：展示本次生成背后的多 Agent 编排 */}
-            <AgentExecutionChain nodes={agentNodes} />
+            {/* 生成结果 */}
+            <ContentResultCard content={content} />
 
             {/* 底部按钮栏：左侧重新生成 + 上一步，右侧查看审核结果 */}
             <div className="mt-8 flex items-center justify-between">

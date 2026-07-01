@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Brand, Product, Platform, ContentGoal } from '@/engine/types';
 import { WorkbenchStep } from '@/store/workbenchStore';
-import { AgentRunNode, getAgentStatuses, buildAgentRunNodes } from '@/data/agents';
+import { AgentStatus, getAgentStatuses, buildAgentRunNodes } from '@/data/agents';
 
 interface CurrentAgentCardProps {
   step: WorkbenchStep;
@@ -10,33 +10,35 @@ interface CurrentAgentCardProps {
   platform: Platform;
   goal: ContentGoal;
   contentGenerated: boolean;
+  loading: boolean;
 }
 
 // 状态徽章样式映射
-const STATUS_BADGE: Record<AgentRunNode['status'], { label: string; className: string }> = {
+const STATUS_BADGE: Record<AgentStatus, { label: string; dotClass: string; badgeClass: string }> = {
   pending: {
-    label: '等待中',
-    className: 'bg-gray-100 text-gray-500',
+    label: '未开始',
+    dotClass: 'bg-gray-300',
+    badgeClass: 'bg-gray-100 text-gray-500',
+  },
+  waiting: {
+    label: '等待输入',
+    dotClass: 'bg-gray-400',
+    badgeClass: 'bg-gray-100 text-gray-600',
   },
   running: {
     label: '运行中',
-    className: 'bg-amber-100 text-amber-700',
+    dotClass: 'bg-amber-500 animate-pulse',
+    badgeClass: 'bg-amber-100 text-amber-700',
   },
   completed: {
     label: '已完成',
-    className: 'bg-emerald-100 text-emerald-700',
+    dotClass: 'bg-emerald-500',
+    badgeClass: 'bg-emerald-100 text-emerald-700',
   },
 };
 
-// 左侧状态色边框
-const BORDER_CLASS: Record<AgentRunNode['status'], string> = {
-  pending: 'border-l-gray-300',
-  running: 'border-l-amber-400',
-  completed: 'border-l-emerald-400',
-};
-
-// 当前步骤对应的 Agent 详情卡片
-// 在工作台每个步骤内容区顶部展示，让用户感知到当前步骤背后运行的 Agent
+// 当前步骤对应 Agent 的轻量辅助卡片（侧边栏）
+// 仅作为辅助说明，不抢占主体视觉
 export default function CurrentAgentCard({
   step,
   brand,
@@ -44,53 +46,56 @@ export default function CurrentAgentCard({
   platform,
   goal,
   contentGenerated,
+  loading,
 }: CurrentAgentCardProps) {
   const node = useMemo(() => {
-    const statuses = getAgentStatuses(step, contentGenerated);
+    const statuses = getAgentStatuses(step, contentGenerated, loading);
     const nodes = buildAgentRunNodes(brand, product, platform, goal, statuses);
     return nodes[step - 1];
-  }, [step, brand, product, platform, goal, contentGenerated]);
+  }, [step, brand, product, platform, goal, contentGenerated, loading]);
 
   const badge = STATUS_BADGE[node.status];
 
   return (
-    <div
-      className={`bg-white rounded-lg border border-gray-200 border-l-4 shadow-sm px-5 py-4 ${BORDER_CLASS[node.status]}`}
-    >
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
       {/* 标题行：Agent 名称 + 状态徽章 */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <span className="text-base font-semibold text-gray-900">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-900 truncate">
             {node.name}
-          </span>
-          <span className="ml-2 text-sm text-gray-500">
+          </div>
+          <div className="text-xs text-gray-500 mt-0.5">
             {node.nameZh}
-          </span>
+          </div>
         </div>
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${badge.className}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${badge.badgeClass}`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+          <span className={`w-1.5 h-1.5 rounded-full ${badge.dotClass}`} />
           {badge.label}
         </span>
       </div>
 
       {/* 职责 */}
-      <p className="mt-2 text-sm text-gray-700 leading-relaxed">
-        <span className="text-gray-500">职责：</span>
-        {node.role}
-      </p>
+      <div className="mt-3">
+        <div className="text-xs font-medium text-gray-400">职责</div>
+        <p className="mt-0.5 text-xs text-gray-700 leading-relaxed">{node.role}</p>
+      </div>
 
-      {/* 示例输出 */}
-      <div className="mt-3 bg-indigo-50/60 rounded border border-indigo-100 p-3">
-        <div className="text-xs font-medium text-indigo-600 uppercase mb-1">
-          示例输出
+      {/* 输入 / 输出 */}
+      <div className="mt-2 space-y-1.5">
+        <div>
+          <span className="text-xs font-medium text-gray-400">输入：</span>
+          <span className="text-xs text-gray-600">{node.input}</span>
         </div>
-        <p className="text-sm text-gray-800 leading-relaxed">{node.sample}</p>
+        <div>
+          <span className="text-xs font-medium text-gray-400">输出：</span>
+          <span className="text-xs text-gray-600">{node.output}</span>
+        </div>
       </div>
 
       {/* 简短说明 */}
-      <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+      <p className="mt-2 text-[11px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2">
         {node.note}
       </p>
     </div>
