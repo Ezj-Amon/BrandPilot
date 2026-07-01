@@ -72,6 +72,10 @@ export default function WorkbenchPage() {
             loading={state.loading}
             content={state.generatedContent}
             error={state.error}
+            brand={state.brand}
+            product={state.product}
+            platform={state.platform}
+            goal={state.goal}
             onGenerate={generate}
             onRegenerate={generate}
             onBack={() => setStep(3)}
