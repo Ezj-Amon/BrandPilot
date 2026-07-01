@@ -34,8 +34,8 @@ export const initialWorkbenchState: WorkbenchState = {
   reviewResult: null,
   loading: false,
   error: null,
-  // 步骤 1 已到达且有默认产品但未交互 → 待确认；2-5 未到达 → 未开始
-  stepStatuses: { 1: 'pending_confirm', 2: 'pending', 3: 'pending', 4: 'pending', 5: 'pending' },
+  // 步骤 1 默认 Voyage Pack + LumaCarry 均有效 → 输入就绪；2-5 未到达 → 未开始
+  stepStatuses: { 1: 'ready', 2: 'pending', 3: 'pending', 4: 'pending', 5: 'pending' },
 };
 
 // 步骤 1 输入有效性判定（必填字段非空）
@@ -58,13 +58,22 @@ function invalidateDownstream(stepStatuses: Record<WorkbenchStep, AgentStatus>):
 }
 
 // 进入某步骤时，若该步为 pending 则提升为对应入口态
+// 步骤 1-3 默认值有效 → ready；步骤 1 校验输入有效性，无效则 pending_confirm
 function promoteOnEnter(
-  stepStatuses: Record<WorkbenchStep, AgentStatus>,
+  state: WorkbenchState,
   step: WorkbenchStep
 ): Record<WorkbenchStep, AgentStatus> {
+  const { stepStatuses } = state;
   if (stepStatuses[step] !== 'pending') return stepStatuses;
-  const entry: AgentStatus = step === 4 ? 'ready' : step === 5 ? 'completed' : 'pending_confirm';
-  return { ...stepStatuses, [step]: entry };
+  if (step === 4) return { ...stepStatuses, 4: 'ready' };
+  if (step === 5) return { ...stepStatuses, 5: 'completed' };
+  // 步骤 1：校验当前输入有效性
+  if (step === 1) {
+    const valid = isStep1InputValid(state.brand, state.product);
+    return { ...stepStatuses, 1: valid ? 'ready' : 'pending_confirm' };
+  }
+  // 步骤 2/3：固定列表选择，默认值始终有效 → ready
+  return { ...stepStatuses, [step]: 'ready' };
 }
 
 // Action 类型
@@ -92,8 +101,8 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         stepStatuses = { ...stepStatuses, [prev]: 'completed' as AgentStatus };
       }
       // 后退不改状态，保留「已完成」便于回看
-      // 目的地若为 pending 则提升为入口态
-      stepStatuses = promoteOnEnter(stepStatuses, next);
+      // 目的地若为 pending 则提升为入口态（传入已更新的 stepStatuses，避免丢失 prev→completed）
+      stepStatuses = promoteOnEnter({ ...state, stepStatuses }, next);
       return { ...state, step: next, stepStatuses };
     }
     case 'SET_PRODUCT': {
