@@ -60,12 +60,13 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
   },
 ];
 
-// Agent 运行时状态
-// pending: 未到达（后续步骤）
-// waiting: 等待输入（用户仍在当前步骤操作，尚未触发处理动作）
-// running: 运行中（正在执行生成 / 审核等处理动作）
+// Agent 运行时状态（per-step 状态机：唯一真相源由 workbenchStore.stepStatuses 驱动）
+// pending: 未开始（未到达的后续步骤）
+// pending_confirm: 待确认（已到达且有默认值，但用户尚未有效交互确认）
+// ready: 输入就绪（用户发生有效交互且当前步骤输入有效）
+// running: 运行中（正在执行生成动作）
 // completed: 已完成
-export type AgentStatus = 'pending' | 'waiting' | 'running' | 'completed';
+export type AgentStatus = 'pending' | 'pending_confirm' | 'ready' | 'running' | 'completed';
 
 // 运行时 Agent 节点（用于时间线展示）
 export interface AgentRunNode {
@@ -109,38 +110,6 @@ function goalStructureSample(goal: ContentGoal): string {
     default:
       return `按「${goal.name}」目标确定内容结构`;
   }
-}
-
-// 根据当前工作台步骤推导 5 个 Agent 的状态
-// step: 当前步骤（1-5），contentGenerated: 第四步是否已生成内容，loading: 是否正在执行生成
-// 状态规则：
-// - 前序步骤的 Agent 均已完成
-// - 当前步骤 1-3：用户仍在选择，Agent 处于"等待输入"
-// - 当前步骤 4：未生成时"等待输入"，生成中"运行中"，已生成"已完成"
-// - 当前步骤 5：审核结果随内容一起生成，已完成
-// - 后续步骤的 Agent 未到达
-export function getAgentStatuses(
-  step: number,
-  contentGenerated: boolean,
-  loading: boolean = false
-): AgentStatus[] {
-  const result: AgentStatus[] = [];
-  for (let i = 0; i < 5; i++) {
-    if (i < step - 1) {
-      result.push('completed');
-    } else if (i === step - 1) {
-      if (step === 4) {
-        result.push(loading ? 'running' : contentGenerated ? 'completed' : 'waiting');
-      } else if (step === 5) {
-        result.push('completed');
-      } else {
-        result.push('waiting');
-      }
-    } else {
-      result.push('pending');
-    }
-  }
-  return result;
 }
 
 // 根据当前 Prompt 上下文，生成每个 Agent 的运行时节点（含示例输出）

@@ -9,7 +9,8 @@ import ReviewStep from '@/components/workbench/ReviewStep';
 import CurrentAgentCard from '@/components/workbench/CurrentAgentCard';
 import AgentProgressSummary from '@/components/workbench/AgentProgressSummary';
 import { useWorkbench } from '@/hooks/useWorkbench';
-import { getAgentStatuses } from '@/data/agents';
+import { WorkbenchStep } from '@/store/workbenchStore';
+import { AgentStatus } from '@/data/agents';
 
 // 工作台页面：5 步流程的容器组件
 // 视觉层级：步骤进度 > 当前操作 > 操作结果 > Agent 辅助说明 > Agent 进度摘要
@@ -26,7 +27,10 @@ export default function WorkbenchPage() {
     reset,
   } = useWorkbench();
 
-  const agentStatuses = getAgentStatuses(state.step, !!state.generatedContent, state.loading);
+  // Agent 状态完全来自 per-step 状态机 stepStatuses（agent i ↔ step i 1:1 映射），不再从 step 派生
+  const agentStatuses: AgentStatus[] = ([1, 2, 3, 4, 5] as WorkbenchStep[]).map(
+    (i) => state.stepStatuses[i]
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -35,7 +39,7 @@ export default function WorkbenchPage() {
       {/* 顶部固定进度条：仅显示 5 步流程 */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <ProgressBar currentStep={state.step} />
+          <ProgressBar currentStep={state.step} onStepClick={setStep} />
         </div>
       </div>
 
@@ -115,8 +119,7 @@ export default function WorkbenchPage() {
               product={state.product}
               platform={state.platform}
               goal={state.goal}
-              contentGenerated={!!state.generatedContent}
-              loading={state.loading}
+              statuses={agentStatuses}
             />
           </aside>
         </div>
