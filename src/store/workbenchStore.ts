@@ -64,12 +64,13 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
     case 'GENERATE_START':
       return { ...state, loading: true, error: null };
     case 'GENERATE_SUCCESS':
+      // 生成完成后停留在第四步，展示生成结果，由用户点击"查看审核结果"再进入第五步
       return {
         ...state,
         loading: false,
         generatedContent: action.content,
         reviewResult: action.review,
-        step: 5,  // 生成完成后自动跳到审核步
+        step: 4,
       };
     case 'GENERATE_ERROR':
       return { ...state, loading: false, error: action.error };
