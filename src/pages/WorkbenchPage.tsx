@@ -120,6 +120,11 @@ export default function WorkbenchPage() {
               platform={state.platform}
               goal={state.goal}
               statuses={agentStatuses}
+              productBrief={state.productBrief}
+              platformBrief={state.platformBrief}
+              contentStrategy={state.contentStrategy}
+              generatedContent={state.generatedContent}
+              reviewResult={state.reviewResult}
             />
           </aside>
         </div>

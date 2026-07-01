@@ -1,5 +1,15 @@
 import { useMemo } from 'react';
-import { Brand, Product, Platform, ContentGoal } from '@/engine/types';
+import {
+  Brand,
+  Product,
+  Platform,
+  ContentGoal,
+  ProductBrief,
+  PlatformBrief,
+  ContentStrategy,
+  GeneratedContent,
+  ReviewResult,
+} from '@/engine/types';
 import { WorkbenchStep } from '@/store/workbenchStore';
 import { AgentStatus, buildAgentRunNodes } from '@/data/agents';
 
@@ -10,6 +20,12 @@ interface CurrentAgentCardProps {
   platform: Platform;
   goal: ContentGoal;
   statuses: AgentStatus[]; // 来自 per-step 状态机（唯一真相源）
+  // 真实 Agent 中间产物
+  productBrief: ProductBrief | null;
+  platformBrief: PlatformBrief | null;
+  contentStrategy: ContentStrategy | null;
+  generatedContent: GeneratedContent | null;
+  reviewResult: ReviewResult | null;
 }
 
 // 状态徽章样式映射（5 态）
@@ -50,6 +66,11 @@ export default function CurrentAgentCard({
   platform,
   goal,
   statuses,
+  productBrief,
+  platformBrief,
+  contentStrategy,
+  generatedContent,
+  reviewResult,
 }: CurrentAgentCardProps) {
   const node = useMemo(() => {
     const nodes = buildAgentRunNodes(brand, product, platform, goal, statuses);
@@ -57,6 +78,85 @@ export default function CurrentAgentCard({
   }, [step, brand, product, platform, goal, statuses]);
 
   const badge = STATUS_BADGE[node.status];
+
+  // 根据 step 渲染真实 Agent 中间产物摘要
+  function renderRealOutput() {
+    if (step === 1) {
+      if (!productBrief) return <ComputingText />;
+      return (
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-gray-400">Product Brief</div>
+          <Field label="产品定位" value={productBrief.positioning} />
+          <Field label="核心卖点" value={productBrief.coreSellingPoints.join('、')} />
+          <Field
+            label="风险约束"
+            value={productBrief.riskConstraints.length > 0 ? productBrief.riskConstraints.join('；') : '无'}
+          />
+        </div>
+      );
+    }
+    if (step === 2) {
+      if (!platformBrief) return <ComputingText />;
+      return (
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-gray-400">Platform Brief</div>
+          <Field label="表达风格" value={platformBrief.expressionStyle} />
+          <Field label="长度建议" value={platformBrief.bodyLengthAdvice} />
+          <Field label="标签建议" value={platformBrief.tagAdvice} />
+          <Field label="CTA 风格" value={platformBrief.ctaStyleAdvice} />
+        </div>
+      );
+    }
+    if (step === 3) {
+      if (!contentStrategy) return <ComputingText />;
+      return (
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-gray-400">Content Strategy</div>
+          <Field label="内容主线" value={contentStrategy.mainThread} />
+          <Field label="表达切口" value={contentStrategy.angle} />
+          <Field label="信息排序" value={contentStrategy.infoOrder.join(' → ')} />
+          <Field label="结构建议" value={contentStrategy.structureAdvice} />
+        </div>
+      );
+    }
+    if (step === 4) {
+      if (!generatedContent) {
+        return (
+          <div className="space-y-1.5">
+            <div className="text-xs font-medium text-gray-400">已生成内容</div>
+            <p className="text-xs text-gray-400">等待生成内容</p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-gray-400">已生成内容</div>
+          <Field label="标题" value={generatedContent.title} />
+          <Field label="生成时间" value={generatedContent.createdAt} />
+          <Field label="Session ID" value={generatedContent.sessionId} />
+        </div>
+      );
+    }
+    if (step === 5) {
+      if (!reviewResult) {
+        return (
+          <div className="space-y-1.5">
+            <div className="text-xs font-medium text-gray-400">审核依据</div>
+            <p className="text-xs text-gray-400">等待审核结果</p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-gray-400">审核依据</div>
+          <Field label="通过" value={`${reviewResult.summary.pass} 项`} />
+          <Field label="警告" value={`${reviewResult.summary.warning} 项`} />
+          <Field label="错误" value={`${reviewResult.summary.error} 项`} />
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
@@ -96,10 +196,28 @@ export default function CurrentAgentCard({
         </div>
       </div>
 
+      {/* 真实输出摘要 */}
+      <div className="mt-2 border-t border-gray-100 pt-2">{renderRealOutput()}</div>
+
       {/* 简短说明 */}
       <p className="mt-2 text-[11px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2">
         {node.note}
       </p>
     </div>
   );
+}
+
+// 字段：标签 + 值
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-xs font-medium text-gray-400">{label}：</span>
+      <span className="text-xs text-gray-700">{value}</span>
+    </div>
+  );
+}
+
+// 计算中占位
+function ComputingText() {
+  return <p className="text-xs text-gray-400">正在计算...</p>;
 }

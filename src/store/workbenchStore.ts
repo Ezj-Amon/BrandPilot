@@ -1,4 +1,4 @@
-import { Brand, Product, Platform, ContentGoal, GeneratedContent, ReviewResult } from '@/engine/types';
+import { Brand, Product, Platform, ContentGoal, GeneratedContent, ReviewResult, ProductBrief, PlatformBrief, ContentStrategy } from '@/engine/types';
 import { lumaCarry } from '@/data/brands';
 import { voyagePack } from '@/data/products';
 import { xiaohongshu } from '@/data/platforms';
@@ -17,6 +17,10 @@ export interface WorkbenchState {
   goal: ContentGoal;
   generatedContent: GeneratedContent | null;
   reviewResult: ReviewResult | null;
+  // Agent 中间产物（本地 Rule-based Agent Engine 计算）
+  productBrief: ProductBrief | null;
+  platformBrief: PlatformBrief | null;
+  contentStrategy: ContentStrategy | null;
   loading: boolean;
   error: string | null;
   // per-step 状态机：5 个步骤的 Agent 状态唯一真相源（agent i ↔ step i 1:1 映射）
@@ -32,6 +36,9 @@ export const initialWorkbenchState: WorkbenchState = {
   goal: seedingPost,
   generatedContent: null,
   reviewResult: null,
+  productBrief: null,
+  platformBrief: null,
+  contentStrategy: null,
   loading: false,
   error: null,
   // 步骤 1 默认 Voyage Pack + LumaCarry 均有效 → 输入就绪；2-5 未到达 → 未开始
@@ -84,6 +91,9 @@ export type WorkbenchAction =
   | { type: 'UPDATE_BRAND'; patch: Partial<Brand> }
   | { type: 'SET_PLATFORM'; platform: Platform }
   | { type: 'SET_GOAL'; goal: ContentGoal }
+  | { type: 'SET_PRODUCT_BRIEF'; brief: ProductBrief }
+  | { type: 'SET_PLATFORM_BRIEF'; brief: PlatformBrief }
+  | { type: 'SET_CONTENT_STRATEGY'; strategy: ContentStrategy }
   | { type: 'GENERATE_START' }
   | { type: 'GENERATE_SUCCESS'; content: GeneratedContent; review: ReviewResult }
   | { type: 'GENERATE_ERROR'; error: string }
@@ -113,6 +123,9 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         product,
         generatedContent: null,
         reviewResult: null,
+        productBrief: null,
+        platformBrief: null,
+        contentStrategy: null,
         stepStatuses: invalidateDownstream({ ...state.stepStatuses, 1: step1Status }),
       };
     }
@@ -124,6 +137,9 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         product,
         generatedContent: null,
         reviewResult: null,
+        productBrief: null,
+        platformBrief: null,
+        contentStrategy: null,
         stepStatuses: invalidateDownstream({ ...state.stepStatuses, 1: step1Status }),
       };
     }
@@ -135,27 +151,39 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         brand,
         generatedContent: null,
         reviewResult: null,
+        productBrief: null,
+        platformBrief: null,
+        contentStrategy: null,
         stepStatuses: invalidateDownstream({ ...state.stepStatuses, 1: step1Status }),
       };
     }
     case 'SET_PLATFORM':
-      // 平台为固定列表选择，选中即有效 → ready；下游失效
+      // 平台为固定列表选择，选中即有效 → ready；平台简报与下游策略失效
       return {
         ...state,
         platform: action.platform,
         generatedContent: null,
         reviewResult: null,
+        platformBrief: null,
+        contentStrategy: null,
         stepStatuses: invalidateDownstream({ ...state.stepStatuses, 2: 'ready' }),
       };
     case 'SET_GOAL':
-      // 内容目标为固定列表选择，选中即有效 → ready；下游失效
+      // 内容目标为固定列表选择，选中即有效 → ready；策略失效
       return {
         ...state,
         goal: action.goal,
         generatedContent: null,
         reviewResult: null,
+        contentStrategy: null,
         stepStatuses: invalidateDownstream({ ...state.stepStatuses, 3: 'ready' }),
       };
+    case 'SET_PRODUCT_BRIEF':
+      return { ...state, productBrief: action.brief };
+    case 'SET_PLATFORM_BRIEF':
+      return { ...state, platformBrief: action.brief };
+    case 'SET_CONTENT_STRATEGY':
+      return { ...state, contentStrategy: action.strategy };
     case 'GENERATE_START':
       return { ...state, loading: true, error: null, stepStatuses: { ...state.stepStatuses, 4: 'running' } };
     case 'GENERATE_SUCCESS':
