@@ -27,6 +27,9 @@ export default function ProductStep({
       <p className="mt-1 text-sm text-gray-500">
         选择要生成内容的产品，可展开编辑产品资料
       </p>
+      <p className="mt-2 text-xs text-gray-400">
+        当前 Demo 以 Voyage Pack 作为完整案例，展示从内容生成到发布前审核的完整流程；Metro Pack 和 Flex Sleeve 为后续扩展案例。
+      </p>
 
       {/* 产品选择卡片 */}
       <div className="mt-6">

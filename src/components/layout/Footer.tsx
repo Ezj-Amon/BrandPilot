@@ -7,7 +7,7 @@ export default function Footer() {
         <span>© 2026 BrandPilot Demo</span>
         {/* 右侧：声明 */}
         <span className="text-gray-400">
-          本 Demo 所有品牌与产品均为虚构，仅用于比赛展示
+          页面中的品牌与产品均为虚构案例，仅用于展示 BrandPilot 的内容运营工作流
         </span>
       </div>
     </footer>

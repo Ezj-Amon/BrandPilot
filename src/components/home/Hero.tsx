@@ -1,21 +1,33 @@
 import { Link } from 'react-router-dom'
 
-// 首页 Hero 区域：大标题 + 副标题 + 定位 + 主次按钮
+// 首页 Hero 区域：产品定位 + 大标题 + 一句话定位 + 差异化提示 + 主次按钮 + 虚拟声明
 export default function Hero() {
   return (
     <section className="bg-gradient-to-b from-indigo-50 to-white">
       <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 text-center">
+        {/* 产品定位标签 */}
+        <span className="inline-block px-3 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-full">
+          AI 内容运营工作台 · 比赛 Demo
+        </span>
+
         {/* 大标题 */}
-        <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 tracking-tight">
+        <h1 className="mt-4 text-5xl sm:text-6xl font-bold text-gray-900 tracking-tight">
           BrandPilot
         </h1>
+
         {/* 副标题 */}
         <p className="mt-4 text-xl sm:text-2xl text-indigo-600 font-medium">
-          面向 DTC 品牌的 AI 内容运营工作台
+          面向早期 DTC 品牌与小团队的内容运营工作台
         </p>
+
         {/* 一句话定位 */}
         <p className="mt-6 max-w-2xl mx-auto text-base text-gray-600 leading-relaxed">
-          把产品资料、平台选择、内容生成、发布前审核整合成一条可复用的内容生产流程
+          不是单纯的 AI 文案生成器，而是把内容规划、平台适配、文案生成、发布前审核串成一条可复用的内容生产流程
+        </p>
+
+        {/* 差异化提示 */}
+        <p className="mt-3 max-w-2xl mx-auto text-sm text-emerald-700 font-medium">
+          差异化重点：发布前审核 + 品牌一致性检查
         </p>
 
         {/* 主次按钮 */}
@@ -33,6 +45,11 @@ export default function Hero() {
             了解工作流
           </a>
         </div>
+
+        {/* 虚拟案例提示 */}
+        <p className="mt-8 text-xs text-gray-400">
+          页面中的品牌与产品均为虚构案例，仅用于展示 BrandPilot 的内容运营工作流
+        </p>
       </div>
     </section>
   )
