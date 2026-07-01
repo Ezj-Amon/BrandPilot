@@ -1,148 +1,176 @@
-# 进度条节点可点击 + Agent 状态细化（输入就绪）
+# 进度条节点可点击 + Agent 状态机重构（待确认/输入就绪/已完成）
 
 ## 概述
 
-两项调整：
-1. 顶部 5 步进度条节点可点击，但仅「前置节点」（已完成、在当前步骤之前的步骤）可点击导航回去；当前步骤与未到达的后续节点不可点。
-2. 细化 Agent 状态：步骤 1-3 当前 Agent 不再永远显示「等待输入」，新增「输入就绪」中间态——用户在当前步骤发生任何交互（选产品/平台/目标，或编辑产品/品牌字段）后即变为「输入就绪」；只有点击「下一步」离开该步后才变为「已完成」。所有涉及 Agent 状态的展示（侧边栏卡片、底部进度摘要）均需同步。
+两项功能 + 状态架构重构：
+1. 顶部 5 步进度条节点可点击，但仅「前置节点」（`step < currentStep`，已完成）可点击导航回去；当前步骤与未到达节点不可点。
+2. Agent 状态从「只依赖 step/contentGenerated/loading 推导」重构为「显式 per-step 状态机」作为唯一真相源，并细化状态语义：
+   - `pending`（未开始）/ `pending_confirm`（待确认）/ `ready`（输入就绪）/ `running`（运行中）/ `completed`（已完成）
+3. 第四步保持不展示完整 Agent 链路（沿用上一轮方向，本次不改动 GenerateStep 结构）。
 
 ## 当前状态分析
 
-### 状态推导（`src/data/agents.ts`）
-`getAgentStatuses(step, contentGenerated, loading)` 当前逻辑：
-- 前序步骤 → `completed`
-- 当前步骤 1-3 → 永远 `waiting`（**问题所在**）
-- 当前步骤 4 → `waiting` / `running` / `completed`
-- 当前步骤 5 → `completed`
-- 后续步骤 → `pending`
+### 状态推导（问题根源）
+[src/data/agents.ts](file:///workspace/src/data/agents.ts#L122) 的 `getAgentStatuses(step, contentGenerated, loading)` 把所有状态从 step 派生：
+- 当前步骤 1-3 永远 `waiting` → 与界面已预选默认值矛盾（用户反馈点 1）。
+- 无「待确认」「输入就绪」中间态。
+- 无 per-step 真相源，下游失效需手工清字段（用户反馈点 2、4）。
 
-`AgentStatus` 类型：`'pending' | 'waiting' | 'running' | 'completed'`（缺 `ready`）。
+### 状态消费点（需全量同步，用户要求「检查完全」）
+- [src/pages/WorkbenchPage.tsx](file:///workspace/src/pages/WorkbenchPage.tsx#L29)：`getAgentStatuses(...)` 计算后传给 `AgentProgressSummary` 与 `CurrentAgentCard`。
+- [src/components/workbench/CurrentAgentCard.tsx](file:///workspace/src/components/workbench/CurrentAgentCard.tsx#L52)：自调 `getAgentStatuses` + `buildAgentRunNodes` 取 `nodes[step-1]`，`STATUS_BADGE` 为 `Record<AgentStatus,...>`。
+- [src/components/workbench/AgentProgressSummary.tsx](file:///workspace/src/components/workbench/AgentProgressSummary.tsx#L9)：`STATUS_META` 为 `Record<AgentStatus,...>`。
+- [src/components/workbench/AgentExecutionChain.tsx](file:///workspace/src/components/workbench/AgentExecutionChain.tsx#L8)：死代码（无 import），但参与 `tsc`，`STATUS_BADGE` 为 `Record<AgentRunNode['status'],...>`。
 
-### 状态消费点（需全部同步，用户明确要求「检查完全」）
-- [src/pages/WorkbenchPage.tsx](file:///workspace/src/pages/WorkbenchPage.tsx#L29)：计算 `agentStatuses`，传给 `AgentProgressSummary`；并把状态相关 props 传给 `CurrentAgentCard`。
-- [src/components/workbench/CurrentAgentCard.tsx](file:///workspace/src/components/workbench/CurrentAgentCard.tsx#L52)：自行调用 `getAgentStatuses` + `buildAgentRunNodes`，取 `nodes[step-1]`。`STATUS_BADGE` 是 `Record<AgentStatus, ...>`。
-- [src/components/workbench/AgentProgressSummary.tsx](file:///workspace/src/components/workbench/AgentProgressSummary.tsx#L9)：`STATUS_META` 是 `Record<AgentStatus, ...>`。
-- [src/components/workbench/AgentExecutionChain.tsx](file:///workspace/src/components/workbench/AgentExecutionChain.tsx#L8)：`STATUS_BADGE` 是 `Record<AgentRunNode['status'], ...>`（死代码，未被任何组件 import，但参与 `tsc` 类型检查，必须补全 `ready`）。
+### store（[src/store/workbenchStore.ts](file:///workspace/src/store/workbenchStore.ts)）
+- 现有 actions：`SET_STEP`/`SET_PRODUCT`/`UPDATE_PRODUCT`/`UPDATE_BRAND`/`SET_PLATFORM`/`SET_GOAL`/`GENERATE_START`/`GENERATE_SUCCESS`/`GENERATE_ERROR`/`RESET`。
+- 现有失效：仅 `SET_PLATFORM`/`SET_GOAL` 清 `generatedContent`/`reviewResult`；`SET_PRODUCT`/`UPDATE_*` **不清**（用户反馈点 2 漏洞）。
+- 无 per-step 状态字段。
 
-### 进度条（`src/components/layout/ProgressBar.tsx`）
-单轨 5 步，节点为纯展示 `<div>`，无 `onClick`、无 `onStepClick` prop。
+### 可编辑字段（用于「输入有效性」判定，用户反馈点 3）
+[src/components/product/ProductEditor.tsx](file:///workspace/src/components/product/ProductEditor.tsx) 在步骤 1 可编辑：`brand.name`、`product.name`、`product.type`、`product.coreSellingPoints`、`brand.bannedWords`。其中前 4 项为必填（bannedWords 可空）。步骤 2/3 为固定列表选择，选中即有效。
 
-### 交互来源（确认「任何交互」可被捕获）
-- 步骤 1：`ProductSelector` 点产品卡片 → `onProductSelect` → `SET_PRODUCT`；`ProductEditor` 编辑 → `onBrandChange`/`onProductChange` → `UPDATE_BRAND`/`UPDATE_PRODUCT`。
-- 步骤 2：`PlatformStep` 点平台 Tab → `onSelect` → `SET_PLATFORM`。
-- 步骤 3：`GoalStep` 点目标卡片 → `onSelect` → `SET_GOAL`。
-- 这些 action 均在 `workbenchStore.ts` 的 reducer 中处理，是挂载「标记就绪」逻辑的唯一入口。
-
-### 默认值注意
-步骤 1-3 有预选默认值（Voyage Pack / 小红书 / 种草帖）。按用户确认：进入步骤时初始为「等待输入」，发生交互后才变「输入就绪」（不因默认值预选而直接就绪）。
+### 默认值（用户反馈点 1）
+步骤 1-3 初始均有预选值（Voyage Pack / 小红书 / 种草帖），但用户未交互确认 → 用 `pending_confirm`（待确认）表达，消除「已选中却显示等待输入」的矛盾。
 
 ## 实施方案
 
-### 1. `src/store/workbenchStore.ts` — 新增 stepInputsReady 状态
+### 1. `src/data/agents.ts` — 重定义状态联合 + 移除派生函数
 
-在 `WorkbenchState` 增加：
 ```ts
-stepInputsReady: Record<number, boolean>;
+// 5 态状态机：per-step 真相源
+export type AgentStatus =
+  | 'pending'          // 未开始（未到达）
+  | 'pending_confirm'  // 待确认（有默认值/已到达但用户未有效交互）
+  | 'ready'            // 输入就绪（有效交互 + 输入有效）
+  | 'running'          // 运行中（生成中）
+  | 'completed';       // 已完成
 ```
 
-初始状态 `initialWorkbenchState` 增加：
+- **移除** `getAgentStatuses`（不再从 step 派生）。
+- 保留 `buildAgentRunNodes(brand, product, platform, goal, statuses?)`（CurrentAgentCard 仍需用它取节点详情，statuses 由 store 传入）。
+
+### 2. `src/store/workbenchStore.ts` — 引入 stepStatuses 真相源
+
+类型与初始状态：
 ```ts
-stepInputsReady: {},
+import { AgentStatus } from '@/data/agents';
+
+export interface WorkbenchState {
+  // ...现有字段
+  stepStatuses: Record<WorkbenchStep, AgentStatus>; // 新增：唯一真相源
+}
+
+export const initialWorkbenchState: WorkbenchState = {
+  // ...现有
+  stepStatuses: { 1: 'pending_confirm', 2: 'pending', 3: 'pending', 4: 'pending', 5: 'pending' },
+};
+```
+> 步骤 1 初始为 `pending_confirm`（有默认产品但未交互）；2-5 未到达 `pending`。
+
+**输入有效性判定（用户反馈点 3）：**
+```ts
+function isStep1InputValid(brand: Brand, product: Product): boolean {
+  return (
+    brand.name.trim() !== '' &&
+    product.name.trim() !== '' &&
+    product.type.trim() !== '' &&
+    product.coreSellingPoints.length > 0
+  );
+}
 ```
 
-reducer 在以下 action 中标记对应步骤就绪（**持久化，导航不重置**，仅 `RESET` 清空）：
-- `SET_PRODUCT` / `UPDATE_PRODUCT` / `UPDATE_BRAND` → `stepInputsReady: { ...state.stepInputsReady, 1: true }`
-- `SET_PLATFORM` → 同上置 `2: true`（保留其清空 `generatedContent`/`reviewResult` 的现有行为）
-- `SET_GOAL` → 同上置 `3: true`（保留其清空 `generatedContent`/`reviewResult` 的现有行为）
-- `RESET` → 回到 `initialWorkbenchState`（自动清空）
+**reducer 转换规则（核心）：**
 
-> 注意：`SET_STEP`（点击进度条节点 / 点下一步）**不**改 `stepInputsReady`，保证「回看某步时该步仍显示已就绪/已完成」。
+| Action | stepStatuses 变更 | 其它 |
+|---|---|---|
+| `SET_PRODUCT` | 1: `isStep1InputValid? ready : pending_confirm`；4,5 → `pending` | product 更新；清 generatedContent/reviewResult |
+| `UPDATE_PRODUCT`/`UPDATE_BRAND` | 同上（按新值判定 1） | 同上 |
+| `SET_PLATFORM` | 2 → `ready`；4,5 → `pending` | platform 更新；清 generatedContent/reviewResult（沿用） |
+| `SET_GOAL` | 3 → `ready`；4,5 → `pending` | goal 更新；清 generatedContent/reviewResult（沿用） |
+| `SET_STEP`（N） | 若 `N > prev`（前进/下一步）：`prev → completed`；若 `stepStatuses[N]==='pending'` 则提升：1-3→`pending_confirm`、4→`ready`、5→`completed` | 仅前进完成左步；后退不改状态 |
+| `GENERATE_START` | 4 → `running` | loading=true |
+| `GENERATE_SUCCESS` | 4 → `completed`；5 → `completed` | 设 content/review；step 保持 4 |
+| `GENERATE_ERROR` | 4 → `ready`（可重试） | loading=false |
+| `RESET` | 回到 initial | 全部重置 |
 
-### 2. `src/data/agents.ts` — 新增 ready 状态 + 改造 getAgentStatuses
+> 用户反馈点 2（下游失效）：任何 1/2/3 的修改都把 4,5 → `pending` 并清 content/review，且依赖链只影响 4,5（2,3 互相独立，修改产品不影响平台/目标，保持原状态）。
 
-类型扩展：
-```ts
-export type AgentStatus = 'pending' | 'waiting' | 'ready' | 'running' | 'completed';
-```
+### 3. `src/components/layout/ProgressBar.tsx` — 前置节点可点击
 
-函数签名增加 `stepInputsReady` 参数：
-```ts
-export function getAgentStatuses(
-  step: number,
-  contentGenerated: boolean,
-  loading: boolean = false,
-  stepInputsReady: Record<number, boolean> = {}
-): AgentStatus[]
-```
-
-当前步骤分支（步骤 1-3）改为：
-```ts
-result.push(stepInputsReady[step] ? 'ready' : 'waiting');
-```
-步骤 4 保持：`loading ? 'running' : contentGenerated ? 'completed' : 'waiting'`。步骤 5 保持 `completed`。前序 `completed`、后续 `pending` 不变。
-
-### 3. `src/components/layout/ProgressBar.tsx` — 节点可点击（仅前置节点）
-
-Props 增加：
 ```ts
 interface ProgressBarProps {
   currentStep: 1 | 2 | 3 | 4 | 5
   onStepClick?: (step: 1 | 2 | 3 | 4 | 5) => void
 }
 ```
+每个节点：`canClick = !!onStepClick && step < currentStep`。
+- 可点：`cursor-pointer`，`hover:ring-2 hover:ring-indigo-200 hover:bg-indigo-50 rounded-full`，`title={`返回第${step}步`}`，onClick → `onStepClick(step)`。
+- 不可点（当前/未来）：保持样式，`cursor-default`，无 onClick。
+> 进度条仅能向后导航（点已完成步骤回看）；前进只能通过各步「下一步」按钮。
 
-每个节点：`canClick = onStepClick && step < currentStep`。
-- `canClick` 时：外层包 `button`（或加 `role="button"` + onClick），`cursor-pointer`，`hover:ring-2 hover:ring-indigo-200 hover:bg-indigo-50 rounded-full`，`title={`返回第${step}步：${label}`}`，点击调 `onStepClick(step)`。
-- 不可点击（当前/未来）：保持现样式，`cursor-default`，无 onClick。
+### 4. `src/pages/WorkbenchPage.tsx` — 从 stepStatuses 派生 + 串接
 
-### 4. `src/pages/WorkbenchPage.tsx` — 串接
-
-- 计算：`const agentStatuses = getAgentStatuses(state.step, !!state.generatedContent, state.loading, state.stepInputsReady);`
-- `<ProgressBar currentStep={state.step} onStepClick={setStep} />`
-- `<CurrentAgentCard ... stepInputsReady={state.stepInputsReady} />`
-- `<AgentProgressSummary statuses={agentStatuses} />`（已是这样，statuses 来源更新即可）
-
-### 5. `src/components/workbench/CurrentAgentCard.tsx` — 接收就绪信息 + 补 ready 样式
-
-- Props 增加 `stepInputsReady: Record<number, boolean>`。
-- `getAgentStatuses` 调用改为 `getAgentStatuses(step, contentGenerated, loading, stepInputsReady)`。
-- `STATUS_BADGE` 增加 `ready`：
 ```ts
-ready: { label: '输入就绪', dotClass: 'bg-indigo-500', badgeClass: 'bg-indigo-100 text-indigo-700' },
+// 真相源直接转数组（1-1 映射 agent i ↔ step i）
+const agentStatuses: AgentStatus[] = ([1,2,3,4,5] as WorkbenchStep[]).map(i => state.stepStatuses[i]);
+
+<ProgressBar currentStep={state.step} onStepClick={setStep} />
+<CurrentAgentCard step={state.step} brand={...} product={...} platform={...} goal={...} statuses={agentStatuses} />
+<AgentProgressSummary statuses={agentStatuses} />
+```
+> 移除 `getAgentStatuses` 调用；agentStatuses 完全来自 `state.stepStatuses`。
+
+### 5. `src/components/workbench/CurrentAgentCard.tsx` — 接收 statuses + 补全状态映射
+
+- Props 改为 `statuses: AgentStatus[]`（移除 `contentGenerated`/`loading`，不再自调 `getAgentStatuses`）。
+- `useMemo`：`buildAgentRunNodes(brand, product, platform, goal, statuses)` → `nodes[step-1]`。
+- `STATUS_BADGE` 补全 5 态：
+```ts
+pending: { label:'未开始', dotClass:'bg-gray-300', badgeClass:'bg-gray-100 text-gray-500' },
+pending_confirm: { label:'待确认', dotClass:'bg-gray-400', badgeClass:'bg-gray-100 text-gray-600' },
+ready: { label:'输入就绪', dotClass:'bg-indigo-500', badgeClass:'bg-indigo-100 text-indigo-700' },
+running: { label:'运行中', dotClass:'bg-amber-500 animate-pulse', badgeClass:'bg-amber-100 text-amber-700' },
+completed: { label:'已完成', dotClass:'bg-emerald-500', badgeClass:'bg-emerald-100 text-emerald-700' },
 ```
 
-### 6. `src/components/workbench/AgentProgressSummary.tsx` — 补 ready 样式
+### 6. `src/components/workbench/AgentProgressSummary.tsx` — 补全 STATUS_META
 
-`STATUS_META` 增加：
 ```ts
-ready: { label: '输入就绪', dot: 'bg-indigo-500', text: 'text-indigo-600' },
+pending: { label:'未开始', dot:'bg-gray-300', text:'text-gray-400' },
+pending_confirm: { label:'待确认', dot:'bg-gray-400', text:'text-gray-500' },
+ready: { label:'输入就绪', dot:'bg-indigo-500', text:'text-indigo-600' },
+running: { label:'运行中', dot:'bg-amber-500 animate-pulse', text:'text-amber-600' },
+completed: { label:'已完成', dot:'bg-emerald-500', text:'text-emerald-600' },
 ```
 
-### 7. `src/components/workbench/AgentExecutionChain.tsx` — 补 ready 类型（死代码，仅过 tsc）
+### 7. `src/components/workbench/AgentExecutionChain.tsx` — 补全 STATUS_BADGE（死代码过 tsc）
 
-`STATUS_BADGE` 增加占位：
-```ts
-ready: { label: 'Ready', className: 'bg-indigo-100 text-indigo-700' },
-```
+补 `pending_confirm`/`ready` 占位项。
+
+### 8. `src/components/workbench/GenerateStep.tsx` — 不改动（用户反馈点 5）
+
+保持上一轮结果：第四步仅展示 Content Generation Agent（侧边栏）、上游输入摘要标签、生成结果，**不渲染** `AgentExecutionChain`。本次不改动此文件。
 
 ## 假设与决策
 
-1. **「前置节点」= 严格小于当前步骤的已完成步骤**（`step < currentStep`）。当前步骤节点本身不可点（用户已在该步）；未来节点不可点。
-2. **「任何交互」的判定挂在 store action 上**：`SET_PRODUCT`/`UPDATE_PRODUCT`/`UPDATE_BRAND` 标记步骤 1；`SET_PLATFORM` 标记步骤 2；`SET_GOAL` 标记步骤 3。步骤 4 的交互是「点生成内容」，其状态走 `waiting→running→completed`，不使用 `ready`。
-3. **`stepInputsReady` 持久化，导航不重置**：用户从步骤 2 退回步骤 1 时，步骤 1 仍显示「输入就绪」（曾交互过）；只有 `RESET` 清空。这样回看时状态符合直觉。
-4. **默认值预选不等于就绪**：进入步骤 1 时即使 Voyage Pack 已预选，仍显示「等待输入」，直到用户发生交互。符合用户描述「当用户选择了…之后状态应该更新」。
-5. **不改动各步骤组件内部交互逻辑**，只改 store reducer + 状态推导 + 展示层。
-6. **`ready` 视觉用 indigo**，区别于 `waiting`(灰) 与 `completed`(emerald)。
-7. 不接入真实 AI、不新增功能，仅状态细化与可点击导航。
+1. **5 个 Agent 与 5 个步骤 1:1 映射**：agent i 的状态 = `stepStatuses[step i]`。因此移除 `getAgentStatuses`，状态完全由 `stepStatuses` 驱动（用户反馈点 4）。
+2. **「待确认」解决默认值矛盾**（用户反馈点 1）：进入步骤 1-3 时即便有预选默认值，也显示 `pending_confirm`（待确认），而非「等待输入」，消除界面已选中却显示等待输入的矛盾。
+3. **`ready` 需有效交互 + 输入有效**（用户反馈点 3）：步骤 1 用 `isStep1InputValid`（brand.name/product.name/product.type/coreSellingPoints 非空）判定；步骤 2/3 为固定列表选择，选中即有效 → `ready`。
+4. **下游失效**（用户反馈点 2）：SET_PRODUCT/UPDATE_*/SET_PLATFORM/SET_GOAL 均将 4,5 → `pending` 并清 generatedContent/reviewResult；2,3 互相独立，修改产品不影响平台/目标状态。
+5. **前进才完成左步**：`SET_STEP` 仅当 `N > prev`（即「下一步」前进）时把左步置 `completed`；后退/进度条回看不改状态，保留「已完成」便于回看。
+6. **`下一步` 不加有效性闸门**：保持现有可前进行为；`ready` 仅影响状态显示，不阻塞导航（避免超出本次范围）。如未来需闸门可再扩展。
+7. **step 4 到达即 `ready`**：上游 1-3 已完成，输入就绪，点「生成内容」→ `running` → `completed`。
+8. **不接入真实 AI、不新增功能**，仅状态机重构 + 可点击导航 + 保持第 4 步无完整链路。
 
 ## 验证步骤
 
-1. `npm run build` 通过（`tsc && vite build`，无类型错误，特别注意 3 个 `Record<AgentStatus,...>` 均补全 `ready`）。
-2. 步骤 1 进入：侧边栏卡片与底部摘要中 Product Knowledge Agent 显示「等待输入」。
-3. 步骤 1 点任意产品卡片或编辑产品字段 → 状态变为「输入就绪」(indigo)。
-4. 点「下一步」到步骤 2 → Agent 1 变「已完成」(emerald)，Agent 2「等待输入」。
-5. 步骤 2 点平台 Tab → Agent 2「输入就绪」；步骤 3 点目标卡片 → Agent 3「输入就绪」。
-6. 从步骤 3 退回步骤 1（点进度条节点 1）→ Agent 1 仍「已完成」（持久化），步骤 1 内容可编辑。
-7. 步骤 4 未生成「等待输入」→ 点生成(loading)「运行中」→ 完成后「已完成」。
-8. 进度条节点：仅 1..currentStep-1 可点击（cursor-pointer + hover ring），当前/未来节点不可点。
-9. 点击可点节点能正确导航回对应步骤。
+1. `npm run build` 通过（`tsc && vite build`，3 个 `Record<AgentStatus,...>` 均补全 5 态）。
+2. **默认值矛盾解决**：进入步骤 1，侧边栏/底部摘要 Product Knowledge Agent 显示「待确认」(pending_confirm, 灰)，而非「等待输入」。
+3. **输入就绪（有效交互）**：步骤 1 点产品卡片或填写有效字段 → 「输入就绪」(ready, indigo)；若把产品名清空 → 回退「待确认」。
+4. **步骤 2/3**：点平台 Tab → 「输入就绪」；点目标卡片 → 「输入就绪」。
+5. **前进完成**：点「下一步」→ 左步「已完成」(emerald)，右步进入「待确认」。
+6. **下游失效**：从步骤 4（已生成）经进度条回步骤 1，改产品 → 生成内容/审核清空，Agent 4,5 回退「未开始」(pending)，Agent 2,3 保持「已完成」。
+7. **进度条可点击**：仅 `step < currentStep` 节点可点（cursor-pointer + hover ring）；当前/未来节点不可点；点击回看正确导航。
+8. **第四步无完整链路**：第四步仍只展示上游摘要 + 生成结果，无 `AgentExecutionChain`。
+9. **生成流程**：步骤 4「输入就绪」→ 点生成「运行中」→ 完成「已完成」；点「查看审核结果」进步骤 5。
