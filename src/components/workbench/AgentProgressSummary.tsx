@@ -5,11 +5,10 @@ interface AgentProgressSummaryProps {
   statuses: AgentStatus[];
 }
 
-// 状态对应的圆点与文字样式（5 态）
+// 状态对应的圆点与文字样式
 const STATUS_META: Record<AgentStatus, { label: string; dot: string; text: string }> = {
   pending: { label: '未开始', dot: 'bg-gray-300', text: 'text-gray-400' },
-  pending_confirm: { label: '待确认', dot: 'bg-gray-400', text: 'text-gray-500' },
-  ready: { label: '输入就绪', dot: 'bg-indigo-500', text: 'text-indigo-600' },
+  waiting: { label: '等待输入', dot: 'bg-gray-400', text: 'text-gray-500' },
   running: { label: '运行中', dot: 'bg-amber-500 animate-pulse', text: 'text-amber-600' },
   completed: { label: '已完成', dot: 'bg-emerald-500', text: 'text-emerald-600' },
 };

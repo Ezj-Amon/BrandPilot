@@ -1,10 +1,6 @@
 // 5 步进度条组件，显示当前步骤
-// 前置节点（已完成、step < currentStep）可点击导航回看；当前/未来节点不可点
-type StepNum = 1 | 2 | 3 | 4 | 5;
-
 interface ProgressBarProps {
-  currentStep: StepNum
-  onStepClick?: (step: StepNum) => void
+  currentStep: 1 | 2 | 3 | 4 | 5
 }
 
 // 5 个步骤标签
@@ -16,16 +12,14 @@ const STEPS = [
   '发布前审核',
 ]
 
-export default function ProgressBar({ currentStep, onStepClick }: ProgressBarProps) {
+export default function ProgressBar({ currentStep }: ProgressBarProps) {
   return (
     <div className="w-full">
       <div className="flex items-center">
         {STEPS.map((label, index) => {
-          const step = (index + 1) as StepNum
+          const step = (index + 1) as 1 | 2 | 3 | 4 | 5
           const isCurrent = step === currentStep
           const isCompleted = step < currentStep
-          // 仅前置（已完成）节点可点击回看
-          const canClick = !!onStepClick && isCompleted
 
           const circleClass = isCurrent
             ? 'bg-indigo-600 text-white'
@@ -39,36 +33,13 @@ export default function ProgressBar({ currentStep, onStepClick }: ProgressBarPro
               ? 'text-indigo-700'
               : 'text-gray-400'
 
-          // 节点容器样式：可点击时增加 hover 与指针
-          const nodeWrapClass = canClick
-            ? 'cursor-pointer rounded-full transition'
-            : 'cursor-default'
-
-          const handleSelect = () => {
-            if (canClick) onStepClick!(step)
-          }
-
           return (
             <div
               key={label}
               className="flex items-center"
               style={{ flex: index === STEPS.length - 1 ? '0 0 auto' : '1 1 auto' }}
             >
-              <div
-                role={canClick ? 'button' : undefined}
-                tabIndex={canClick ? 0 : undefined}
-                onClick={handleSelect}
-                onKeyDown={(e) => {
-                  if (canClick && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault()
-                    handleSelect()
-                  }
-                }}
-                title={canClick ? `返回第${step}步：${label}` : undefined}
-                className={`flex flex-col items-center gap-1.5 px-2 py-1 ${nodeWrapClass} ${
-                  canClick ? 'hover:bg-indigo-50 hover:ring-2 hover:ring-indigo-200' : ''
-                }`}
-              >
+              <div className="flex flex-col items-center gap-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${circleClass}`}
                 >

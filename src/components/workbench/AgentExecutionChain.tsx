@@ -4,19 +4,15 @@ interface AgentExecutionChainProps {
   nodes: AgentRunNode[];
 }
 
-// 状态徽章样式映射（5 态，本组件为死代码但参与 tsc 类型检查）
+// 状态徽章样式映射
 const STATUS_BADGE: Record<AgentRunNode['status'], { label: string; className: string }> = {
   pending: {
     label: 'Pending',
     className: 'bg-gray-100 text-gray-500',
   },
-  pending_confirm: {
-    label: 'Pending Confirm',
+  waiting: {
+    label: 'Waiting',
     className: 'bg-gray-100 text-gray-600',
-  },
-  ready: {
-    label: 'Ready',
-    className: 'bg-indigo-100 text-indigo-700',
   },
   running: {
     label: 'Running',

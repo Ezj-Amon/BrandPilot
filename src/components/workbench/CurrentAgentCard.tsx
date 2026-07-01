@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Brand, Product, Platform, ContentGoal } from '@/engine/types';
 import { WorkbenchStep } from '@/store/workbenchStore';
-import { AgentStatus, buildAgentRunNodes } from '@/data/agents';
+import { AgentStatus, getAgentStatuses, buildAgentRunNodes } from '@/data/agents';
 
 interface CurrentAgentCardProps {
   step: WorkbenchStep;
@@ -9,25 +9,21 @@ interface CurrentAgentCardProps {
   product: Product;
   platform: Platform;
   goal: ContentGoal;
-  statuses: AgentStatus[]; // 来自 per-step 状态机（唯一真相源）
+  contentGenerated: boolean;
+  loading: boolean;
 }
 
-// 状态徽章样式映射（5 态）
+// 状态徽章样式映射
 const STATUS_BADGE: Record<AgentStatus, { label: string; dotClass: string; badgeClass: string }> = {
   pending: {
     label: '未开始',
     dotClass: 'bg-gray-300',
     badgeClass: 'bg-gray-100 text-gray-500',
   },
-  pending_confirm: {
-    label: '待确认',
+  waiting: {
+    label: '等待输入',
     dotClass: 'bg-gray-400',
     badgeClass: 'bg-gray-100 text-gray-600',
-  },
-  ready: {
-    label: '输入就绪',
-    dotClass: 'bg-indigo-500',
-    badgeClass: 'bg-indigo-100 text-indigo-700',
   },
   running: {
     label: '运行中',
@@ -42,19 +38,21 @@ const STATUS_BADGE: Record<AgentStatus, { label: string; dotClass: string; badge
 };
 
 // 当前步骤对应 Agent 的轻量辅助卡片（侧边栏）
-// 仅作为辅助说明，不抢占主体视觉；状态来自 store 的 stepStatuses
+// 仅作为辅助说明，不抢占主体视觉
 export default function CurrentAgentCard({
   step,
   brand,
   product,
   platform,
   goal,
-  statuses,
+  contentGenerated,
+  loading,
 }: CurrentAgentCardProps) {
   const node = useMemo(() => {
+    const statuses = getAgentStatuses(step, contentGenerated, loading);
     const nodes = buildAgentRunNodes(brand, product, platform, goal, statuses);
     return nodes[step - 1];
-  }, [step, brand, product, platform, goal, statuses]);
+  }, [step, brand, product, platform, goal, contentGenerated, loading]);
 
   const badge = STATUS_BADGE[node.status];
 
