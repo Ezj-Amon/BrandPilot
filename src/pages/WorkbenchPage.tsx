@@ -6,7 +6,9 @@ import PlatformStep from '@/components/workbench/PlatformStep';
 import GoalStep from '@/components/workbench/GoalStep';
 import GenerateStep from '@/components/workbench/GenerateStep';
 import ReviewStep from '@/components/workbench/ReviewStep';
+import CurrentAgentCard from '@/components/workbench/CurrentAgentCard';
 import { useWorkbench } from '@/hooks/useWorkbench';
+import { getAgentStatuses } from '@/data/agents';
 
 // 工作台页面：5 步流程的容器组件
 export default function WorkbenchPage() {
@@ -26,14 +28,29 @@ export default function WorkbenchPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      {/* 顶部固定进度条：紧贴 Header（h-16 = 64px）下方 */}
+      {/* 顶部固定双轨进度条：紧贴 Header（h-16 = 64px）下方 */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <ProgressBar currentStep={state.step} />
+          <ProgressBar
+            currentStep={state.step}
+            agentStatuses={getAgentStatuses(state.step, !!state.generatedContent)}
+          />
         </div>
       </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+        {/* 当前步骤对应的 Agent 详情卡片 */}
+        <div className="mb-6">
+          <CurrentAgentCard
+            step={state.step}
+            brand={state.brand}
+            product={state.product}
+            platform={state.platform}
+            goal={state.goal}
+            contentGenerated={!!state.generatedContent}
+          />
+        </div>
+
         {/* Step 1：选择产品 + 编辑资料 */}
         {state.step === 1 && (
           <ProductStep

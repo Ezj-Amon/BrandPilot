@@ -107,16 +107,46 @@ function goalStructureSample(goal: ContentGoal): string {
   }
 }
 
+// 根据当前工作台步骤推导 5 个 Agent 的状态
+// step: 当前步骤（1-5），contentGenerated: 第四步是否已生成内容
+export function getAgentStatuses(
+  step: number,
+  contentGenerated: boolean
+): AgentStatus[] {
+  const result: AgentStatus[] = [];
+  for (let i = 0; i < 5; i++) {
+    if (i < step - 1) {
+      // 当前步骤之前的 Agent 均已完成
+      result.push('completed');
+    } else if (i === step - 1) {
+      // 当前步骤对应的 Agent
+      if (step === 4) {
+        result.push(contentGenerated ? 'completed' : 'running');
+      } else if (step === 5) {
+        result.push('completed');
+      } else {
+        result.push('running');
+      }
+    } else {
+      // 后续步骤的 Agent 等待中
+      result.push('pending');
+    }
+  }
+  return result;
+}
+
 // 根据当前 Prompt 上下文，生成每个 Agent 的运行时节点（含示例输出）
+// statuses 可选：传入则按状态覆盖各节点，不传则默认全部 completed
 export function buildAgentRunNodes(
   brand: Brand,
   product: Product,
   platform: Platform,
-  goal: ContentGoal
+  goal: ContentGoal,
+  statuses?: AgentStatus[]
 ): AgentRunNode[] {
   const sellingPoints = product.coreSellingPoints.slice(0, 2).join('、');
 
-  return [
+  const nodes: AgentRunNode[] = [
     {
       id: 'agent_product_knowledge',
       name: 'Product Knowledge Agent',
@@ -173,6 +203,14 @@ export function buildAgentRunNodes(
       note: '当前 Demo 中审核逻辑来自 src/engine/reviewEngine.ts，基于静态规则模拟审核结果。',
     },
   ];
+
+  if (statuses) {
+    return nodes.map((node, i) => ({
+      ...node,
+      status: statuses[i] ?? node.status,
+    }));
+  }
+  return nodes;
 }
 
 // 核心架构节点（用于 /workflow 页面流程图）
