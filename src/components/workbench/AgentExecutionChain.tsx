@@ -10,6 +10,10 @@ const STATUS_BADGE: Record<AgentRunNode['status'], { label: string; className: s
     label: 'Pending',
     className: 'bg-gray-100 text-gray-500',
   },
+  waiting: {
+    label: 'Waiting',
+    className: 'bg-gray-100 text-gray-600',
+  },
   running: {
     label: 'Running',
     className: 'bg-amber-100 text-amber-700',
