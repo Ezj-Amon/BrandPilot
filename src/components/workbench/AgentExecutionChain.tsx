@@ -36,7 +36,7 @@ export default function AgentExecutionChain({ nodes }: AgentExecutionChainProps)
           </p>
         </div>
         <span className="text-xs text-gray-400 whitespace-nowrap">
-          共 {nodes.length} 个 Agent · 全部 Completed
+          共 {nodes.length} 个 Agent · {nodes.filter(n => n.status === 'completed').length} 已完成 / {nodes.filter(n => n.status === 'running').length} 进行中
         </span>
       </div>
 
@@ -128,7 +128,7 @@ export default function AgentExecutionChain({ nodes }: AgentExecutionChainProps)
       {/* 底部说明条 */}
       <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-lg">
         <p className="text-xs text-gray-500 leading-relaxed">
-          说明：上述 Agent 执行链路为 BrandPilot 内部 Agent 编排的可视化呈现。当前 MVP
+          说明：上述 Agent 执行链路为 BrandPilot 内部 Agent 编排的可视化呈现，状态随工作台步骤动态变化。当前 MVP
           版本未接入真实大模型 API，示例输出基于静态数据模拟；后续可在此基础上接入真实
           大模型 API，扩展为真实的多 Agent 内容运营系统。
         </p>

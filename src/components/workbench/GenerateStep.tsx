@@ -3,7 +3,7 @@ import { Brand, ContentGoal, GeneratedContent, Platform, Product } from '@/engin
 import ContentResultCard from '@/components/result/ContentResultCard';
 import RegenerateButton from '@/components/result/RegenerateButton';
 import AgentExecutionChain from '@/components/workbench/AgentExecutionChain';
-import { buildAgentRunNodes } from '@/data/agents';
+import { buildAgentRunNodes, getAgentStatuses } from '@/data/agents';
 
 interface GenerateStepProps {
   loading: boolean;
@@ -34,10 +34,10 @@ export default function GenerateStep({
   onBack,
   onNext,
 }: GenerateStepProps) {
-  // 根据当前 Prompt 上下文构建 Agent 执行链路节点
+  // 根据当前 Prompt 上下文构建 Agent 执行链路节点（渐进式状态）
   const agentNodes = useMemo(
-    () => buildAgentRunNodes(brand, product, platform, goal),
-    [brand, product, platform, goal]
+    () => buildAgentRunNodes(brand, product, platform, goal, getAgentStatuses(4, !!content)),
+    [brand, product, platform, goal, content]
   );
   return (
     <div>
